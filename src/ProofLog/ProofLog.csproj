@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <PackageId>ProofLog</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>w1ck3ds0d4</Authors>
+    <Description>A tamper-evident, identity-bound, hash-chained audit-log SDK with a SQLite store and one-call evidence export. Evidence-grade logging for systems that must prove who did what, when (CRA / DORA / NIS2 / EU AI Act).</Description>
+    <PackageTags>audit-log;tamper-evident;hash-chain;compliance;cra;dora;nis2;eu-ai-act;sqlite;security;evidence</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/w1ck3ds0d4/ProofLog</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/w1ck3ds0d4/ProofLog</PackageProjectUrl>
+    <RepositoryType>git</RepositoryType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>
