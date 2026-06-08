@@ -22,6 +22,8 @@ Ordinary logs are editable. If an attacker (or an insider) can change history, y
 dotnet add package ProofLog
 ```
 
+> Published to NuGet on each version tag (`v*`). Until the first release lands, clone this repo and `dotnet add reference` to `src/ProofLog/ProofLog.csproj`, or run the demo below.
+
 ## Quickstart
 
 ```csharp
@@ -40,6 +42,14 @@ Console.WriteLine(v.Ok ? "intact" : $"TAMPERED at #{v.BrokenAtSeq}: {v.Reason}")
 // One-call, self-verifying evidence export for an auditor.
 File.WriteAllText("evidence.json", Evidence.ToJson(log));
 ```
+
+**Try it locally** (no install needed):
+
+```bash
+dotnet run --project samples/ProofLog.Demo
+```
+
+It appends a chain, verifies it, then rewrites a record directly in the database and watches verification fail at exactly that record.
 
 ## How it works
 
