@@ -106,6 +106,26 @@ log.Verify();   // also checks every record's MAC
 
 An attacker who can rewrite the database but doesn't have the key cannot forge a valid record. Keep the key out of the same trust boundary as the log (a KMS, an HSM, a separate service). Unsigned logs are unchanged and fully supported.
 
+### Asymmetric signing (auditor-verifiable, v0.3)
+
+HMAC has one limitation for evidence you hand to a third party: the same key signs *and* verifies, so whoever can verify can also forge. For a dossier given to a regulator you want the opposite - they should be able to **verify without being able to forge**. Pass an `EcdsaProofSigner` (NIST P-256, built on the .NET BCL, no extra dependency): you keep the **private key**, and the auditor verifies with only the **public key**.
+
+```csharp
+using var signer = EcdsaProofSigner.Create();      // or FromPrivateKey(base64) from your vault
+string publicKey = signer.ExportPublicKey();        // publish this with the evidence
+
+using (var log = new SqliteProofLog("audit.db", signer))
+    log.Append(new AuditEntry { Actor = "alice", Action = "payout.approve" });
+
+// The auditor, holding ONLY the public key, can verify but not append or forge:
+using var auditor = EcdsaProofSigner.FromPublicKey(publicKey);
+using var check = new SqliteProofLog("audit.db", auditor);
+check.Verify();          // true - the chain was produced by the private key
+check.Append(/* ... */); // throws: a verify-only (public) key cannot extend the trail
+```
+
+Same `Verify()`, same `Mac` column - the signature is just public-key now. `AddProofLog(path, signer)` wires it through DI.
+
 ## Evidence export
 
 `Evidence.ToJson(log)` produces a portable bundle - every record plus the head hash and a fresh verification statement. An auditor needs nothing but that file and the public hashing rule above to **independently replay the chain** and confirm it. (Named regulator profiles - CRA / DORA / NIS2 / EU AI Act Article 12 - are on the roadmap.)
@@ -121,6 +141,7 @@ An attacker who can rewrite the database but doesn't have the key cannot forge a
 | `ProofRecord` | a committed, chained record |
 | `Evidence` | one-call JSON evidence export |
 | `Hashing` | the canonicalization + SHA-256 rule (so anyone can re-verify) |
+| `IProofSigner` | record signing - `HmacProofSigner` (symmetric) or `EcdsaProofSigner` (asymmetric, auditor-verifiable) |
 
 ## Tech stack
 
@@ -134,7 +155,8 @@ An attacker who can rewrite the database but doesn't have the key cannot forge a
 
 - **v0.1** *(done)* - core append + hash-chain + identity binding + verify, SQLite store, tamper-detection tests, evidence export, CI.
 - **v0.2** *(done)* - optional HMAC signing (defeats a full-chain rewrite), with backward-compatible unsigned logs.
-- **Later** - OpenTelemetry bridge, asymmetric (per-actor) signatures, additional stores, regulator-ready export profiles, Rust core.
+- **v0.3** *(done)* - asymmetric ECDSA P-256 signing: hand an auditor the public key so they verify the chain without being able to forge it (`EcdsaProofSigner`).
+- **Later** - OpenTelemetry bridge, additional stores, regulator-ready export profiles, Rust core.
 
 ## License
 

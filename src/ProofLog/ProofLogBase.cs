@@ -8,12 +8,20 @@ namespace ProofLog;
 public abstract class ProofLogBase : IProofLog
 {
     private readonly object _gate = new();
-    private readonly byte[]? _signingKey;
+    private readonly IProofSigner? _signer;
 
     /// <param name="signingKey">Optional HMAC key. When set, every record is signed and
     /// <see cref="Verify"/> also checks the signature, so a full-chain rewrite without the
-    /// key is detected.</param>
-    protected ProofLogBase(byte[]? signingKey = null) => _signingKey = signingKey;
+    /// key is detected. Shorthand for <c>new HmacProofSigner(signingKey)</c>.</param>
+    protected ProofLogBase(byte[]? signingKey = null)
+        => _signer = signingKey is null ? null : new HmacProofSigner(signingKey);
+
+    /// <param name="signer">Optional signer. <see cref="HmacProofSigner"/> for symmetric
+    /// signing, or <see cref="EcdsaProofSigner"/> for asymmetric signing where an auditor
+    /// can verify with only the public key. When the signer is verify-only
+    /// (<see cref="IProofSigner.CanSign"/> is false), <see cref="Append"/> throws - a
+    /// public key can check the trail but not extend it.</param>
+    protected ProofLogBase(IProofSigner? signer) => _signer = signer;
 
     /// <inheritdoc />
     public ProofRecord Append(AuditEntry entry)
@@ -21,6 +29,7 @@ public abstract class ProofLogBase : IProofLog
         ArgumentNullException.ThrowIfNull(entry);
         if (string.IsNullOrEmpty(entry.Actor)) throw new ArgumentException("Actor is required - ProofLog is identity-bound.", nameof(entry));
         if (string.IsNullOrEmpty(entry.Action)) throw new ArgumentException("Action is required.", nameof(entry));
+        if (_signer is { CanSign: false }) throw new InvalidOperationException($"This log was opened with a verify-only {_signer.Algorithm} signer (public key). It can verify the trail but cannot append - open it with the signing key to record evidence.");
 
         // Serialize appends so the chain stays linear and prev-hash never races.
         lock (_gate)
@@ -30,7 +39,7 @@ public abstract class ProofLogBase : IProofLog
             var prev = last?.Hash ?? Hashing.Genesis;
             var at = UtcNow();
             var hash = Hashing.ComputeHash(prev, seq, at, entry.Actor, entry.Action, entry.Resource, entry.Data);
-            var mac = _signingKey is null ? "" : Hashing.ComputeMac(_signingKey, hash);
+            var mac = _signer is null ? "" : _signer.Sign(hash);
 
             var record = new ProofRecord
             {
@@ -68,8 +77,8 @@ public abstract class ProofLogBase : IProofLog
             if (recomputed != r.Hash)
                 return VerificationResult.Broken(verified, r.Seq, "content hash mismatch (record was modified)");
 
-            if (_signingKey is not null && r.Mac != Hashing.ComputeMac(_signingKey, r.Hash))
-                return VerificationResult.Broken(verified, r.Seq, "signature (MAC) mismatch - record was not produced with this signing key");
+            if (_signer is not null && !_signer.Verify(r.Hash, r.Mac))
+                return VerificationResult.Broken(verified, r.Seq, $"signature ({_signer.Algorithm}) mismatch - record was not produced with this signing key");
 
             expectedSeq++;
             expectedPrev = r.Hash;
