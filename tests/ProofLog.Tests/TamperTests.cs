@@ -75,6 +75,31 @@ public class TamperTests : IDisposable
     }
 
     [Fact]
+    public void Anchored_verify_catches_tail_truncation()
+    {
+        string head;
+        using (var log = new SqliteProofLog(_path))
+        {
+            for (var i = 0; i < 4; i++) log.Append(new AuditEntry { Actor = "a", Action = $"x{i}" });
+            head = log.Head();
+        }
+        Raw("DELETE FROM ProofRecords WHERE Seq = 4;");
+        using var reopened = new SqliteProofLog(_path);
+        Assert.True(reopened.Verify().Ok);                 // plain verify can't see it...
+        var anchored = reopened.Verify(head);               // ...but anchored verify does
+        Assert.False(anchored.Ok);
+        Assert.Contains("anchored", anchored.Reason);
+    }
+
+    [Fact]
+    public void Anchored_verify_passes_when_head_matches()
+    {
+        using var log = new SqliteProofLog(_path);
+        for (var i = 0; i < 3; i++) log.Append(new AuditEntry { Actor = "a", Action = $"x{i}" });
+        Assert.True(log.Verify(log.Head()).Ok);
+    }
+
+    [Fact]
     public void Tail_truncation_is_internally_consistent_so_head_must_be_anchored()
     {
         // Honest threat-model test: deleting the LAST record leaves a chain that is

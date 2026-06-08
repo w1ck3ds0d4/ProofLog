@@ -85,7 +85,13 @@ Fields are **length-prefixed** before hashing, so no value can be crafted to for
 
 ### A note on truncation
 
-Deleting records from the *end* leaves a chain that's still internally consistent - that's a fundamental property of hash chains, not a bug. `Head()` returns the current chain-head hash; anchor it somewhere the attacker can't reach (publish it, notarize it, send it to a second system) and a shrunken log is immediately obvious because its head no longer matches. ProofLog is honest about this rather than pretending a local-only log can detect its own truncation.
+Deleting records from the *end* leaves a chain that's still internally consistent - that's a fundamental property of hash chains, not a bug. `Head()` returns the current chain-head hash; anchor it somewhere the attacker can't reach (publish it, notarize it, send it to a second system), then verify against it:
+
+```csharp
+var anchored = log.Verify(savedHead);   // checks the chain AND that the head matches
+```
+
+If records were truncated (or appended) since `savedHead` was recorded, the heads won't match and verification fails. ProofLog is honest about this rather than pretending a local-only log can detect its own truncation.
 
 ## Signing (optional, recommended for high assurance)
 
