@@ -34,6 +34,10 @@ public static class Hashing
         return Convert.ToHexString(ih.GetHashAndReset()).ToLowerInvariant();
     }
 
+    /// <summary>HMAC-SHA-256 of a record's hash with the signing key (lower-case hex).</summary>
+    public static string ComputeMac(byte[] key, string hashHex) =>
+        Convert.ToHexString(HMACSHA256.HashData(key, Encoding.UTF8.GetBytes(hashHex))).ToLowerInvariant();
+
     private static void Append(IncrementalHash ih, string value)
     {
         var bytes = Encoding.UTF8.GetBytes(value);

@@ -8,6 +8,12 @@ namespace ProofLog;
 public abstract class ProofLogBase : IProofLog
 {
     private readonly object _gate = new();
+    private readonly byte[]? _signingKey;
+
+    /// <param name="signingKey">Optional HMAC key. When set, every record is signed and
+    /// <see cref="Verify"/> also checks the signature, so a full-chain rewrite without the
+    /// key is detected.</param>
+    protected ProofLogBase(byte[]? signingKey = null) => _signingKey = signingKey;
 
     /// <inheritdoc />
     public ProofRecord Append(AuditEntry entry)
@@ -24,6 +30,7 @@ public abstract class ProofLogBase : IProofLog
             var prev = last?.Hash ?? Hashing.Genesis;
             var at = UtcNow();
             var hash = Hashing.ComputeHash(prev, seq, at, entry.Actor, entry.Action, entry.Resource, entry.Data);
+            var mac = _signingKey is null ? "" : Hashing.ComputeMac(_signingKey, hash);
 
             var record = new ProofRecord
             {
@@ -35,6 +42,7 @@ public abstract class ProofLogBase : IProofLog
                 Data = entry.Data,
                 PrevHash = prev,
                 Hash = hash,
+                Mac = mac,
             };
             Persist(record);
             return record;
@@ -59,6 +67,9 @@ public abstract class ProofLogBase : IProofLog
             var recomputed = Hashing.ComputeHash(r.PrevHash, r.Seq, r.At, r.Actor, r.Action, r.Resource, r.Data);
             if (recomputed != r.Hash)
                 return VerificationResult.Broken(verified, r.Seq, "content hash mismatch (record was modified)");
+
+            if (_signingKey is not null && r.Mac != Hashing.ComputeMac(_signingKey, r.Hash))
+                return VerificationResult.Broken(verified, r.Seq, "signature (MAC) mismatch - record was not produced with this signing key");
 
             expectedSeq++;
             expectedPrev = r.Hash;

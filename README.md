@@ -73,6 +73,19 @@ Fields are **length-prefixed** before hashing, so no value can be crafted to for
 
 Deleting records from the *end* leaves a chain that's still internally consistent - that's a fundamental property of hash chains, not a bug. `Head()` returns the current chain-head hash; anchor it somewhere the attacker can't reach (publish it, notarize it, send it to a second system) and a shrunken log is immediately obvious because its head no longer matches. ProofLog is honest about this rather than pretending a local-only log can detect its own truncation.
 
+## Signing (optional, recommended for high assurance)
+
+A bare hash chain has one gap: an attacker with **full write access** to the store can rewrite the *whole* chain - recomputing every hash - and `Verify()` passes (the hashes are public, so anyone can recompute them). Pass a **signing key** and that stops working: each record also carries an HMAC-SHA-256 over its hash, and verification fails unless the record was produced with the key.
+
+```csharp
+byte[] key = /* from a secret store / KMS, NOT in code */;
+using var log = new SqliteProofLog("audit.db", signingKey: key);
+log.Append(new AuditEntry { Actor = "alice", Action = "payout.approve" });
+log.Verify();   // also checks every record's MAC
+```
+
+An attacker who can rewrite the database but doesn't have the key cannot forge a valid record. Keep the key out of the same trust boundary as the log (a KMS, an HSM, a separate service). Unsigned logs are unchanged and fully supported.
+
 ## Evidence export
 
 `Evidence.ToJson(log)` produces a portable bundle - every record plus the head hash and a fresh verification statement. An auditor needs nothing but that file and the public hashing rule above to **independently replay the chain** and confirm it. (Named regulator profiles - CRA / DORA / NIS2 / EU AI Act Article 12 - are on the roadmap.)
@@ -100,7 +113,8 @@ Deleting records from the *end* leaves a chain that's still internally consisten
 ## Roadmap
 
 - **v0.1** *(done)* - core append + hash-chain + identity binding + verify, SQLite store, tamper-detection tests, evidence export, CI.
-- **Later** - OpenTelemetry bridge, additional stores, regulator-ready export profiles, per-actor signatures, Rust core.
+- **v0.2** *(done)* - optional HMAC signing (defeats a full-chain rewrite), with backward-compatible unsigned logs.
+- **Later** - OpenTelemetry bridge, asymmetric (per-actor) signatures, additional stores, regulator-ready export profiles, Rust core.
 
 ## License
 
