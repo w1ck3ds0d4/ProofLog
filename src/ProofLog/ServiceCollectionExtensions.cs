@@ -15,4 +15,17 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IProofLog>(_ => new SqliteProofLog(path, signingKey: signingKey));
         return services;
     }
+
+    /// <summary>Register a durable, SQLite-backed <see cref="IProofLog"/> signed with an
+    /// explicit signer - use an <see cref="EcdsaProofSigner"/> for asymmetric,
+    /// auditor-verifiable signing.</summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="path">SQLite path (created if missing), or <c>":memory:"</c>.</param>
+    /// <param name="signer">The signer to sign and verify every record with.</param>
+    public static IServiceCollection AddProofLog(this IServiceCollection services, string path, IProofSigner signer)
+    {
+        ArgumentNullException.ThrowIfNull(signer);
+        services.AddSingleton<IProofLog>(_ => new SqliteProofLog(path, signer));
+        return services;
+    }
 }

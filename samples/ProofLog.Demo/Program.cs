@@ -45,4 +45,29 @@ using (var log = new SqliteProofLog(path))
 }
 
 try { File.Delete(path); } catch { /* best effort */ }
+
+// --- Asymmetric signing (v0.3): the auditor verifies with only the public key ---
+Console.WriteLine("\n--- Asymmetric signing: you sign with the private key, the auditor verifies with the public key ---");
+var signedPath = Path.Combine(Path.GetTempPath(), $"prooflog-demo-ec-{Guid.NewGuid():N}.db");
+using (var signer = EcdsaProofSigner.Create())
+{
+    var publicKey = signer.ExportPublicKey();
+
+    using (var log = new SqliteProofLog(signedPath, signer))
+    {
+        log.Append(new AuditEntry { Actor = "alice", Action = "payout.approve", Resource = "payout/77", Data = "{\"amount\":2500}" });
+        log.Append(new AuditEntry { Actor = "bob", Action = "config.update", Resource = "policy/aml-v4" });
+    }
+    Console.WriteLine($"Signed 2 records with a private key. Public key (share this): {publicKey[..24]}...");
+
+    // The auditor holds ONLY the public key.
+    using var auditor = EcdsaProofSigner.FromPublicKey(publicKey);
+    using var review = new SqliteProofLog(signedPath, auditor);
+    var av = review.Verify();
+    Console.WriteLine($"Auditor verify (public key only): {(av.Ok ? $"INTACT [OK] ({av.Verified} records)" : "FAIL")}");
+    try { review.Append(new AuditEntry { Actor = "mallory", Action = "payout.approve" }); }
+    catch (InvalidOperationException) { Console.WriteLine("Auditor tried to append with the public key -> rejected (verify-only). Cannot forge."); }
+}
+try { File.Delete(signedPath); } catch { /* best effort */ }
+
 Console.WriteLine("\nEdit the history, and verification fails at exactly the altered record. That's ProofLog.");

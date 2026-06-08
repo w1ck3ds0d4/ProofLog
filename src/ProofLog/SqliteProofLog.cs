@@ -17,15 +17,22 @@ public sealed class SqliteProofLog : ProofLogBase, IDisposable
     /// in-process database that lives as long as this object. Pass <paramref name="clock"/>
     /// for deterministic timestamps (tests).</summary>
     public SqliteProofLog(string pathOrConnectionString, Func<DateTimeOffset>? clock = null, byte[]? signingKey = null)
-        : base(signingKey)
+        : base(signingKey) => _clock = Init(pathOrConnectionString, clock, out _conn);
+
+    /// <summary>Open (or create) a ProofLog signed with an explicit signer - e.g. an
+    /// <see cref="EcdsaProofSigner"/> for asymmetric signing so an auditor can verify
+    /// the trail with only the public key. A verify-only signer can read but not append.</summary>
+    public SqliteProofLog(string pathOrConnectionString, IProofSigner? signer, Func<DateTimeOffset>? clock = null)
+        : base(signer) => _clock = Init(pathOrConnectionString, clock, out _conn);
+
+    private static Func<DateTimeOffset>? Init(string pathOrConnectionString, Func<DateTimeOffset>? clock, out SqliteConnection conn)
     {
-        _clock = clock;
         var cs = pathOrConnectionString.Contains('=', StringComparison.Ordinal)
             ? pathOrConnectionString
             : new SqliteConnectionStringBuilder { DataSource = pathOrConnectionString }.ToString();
-        _conn = new SqliteConnection(cs);
-        _conn.Open();
-        using var cmd = _conn.CreateCommand();
+        conn = new SqliteConnection(cs);
+        conn.Open();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText =
             """
             CREATE TABLE IF NOT EXISTS ProofRecords (
@@ -43,8 +50,9 @@ public sealed class SqliteProofLog : ProofLogBase, IDisposable
         cmd.ExecuteNonQuery();
 
         // Add the Mac column to databases created before v0.2 (idempotent).
-        try { using var alter = _conn.CreateCommand(); alter.CommandText = "ALTER TABLE ProofRecords ADD COLUMN Mac TEXT NOT NULL DEFAULT '';"; alter.ExecuteNonQuery(); }
+        try { using var alter = conn.CreateCommand(); alter.CommandText = "ALTER TABLE ProofRecords ADD COLUMN Mac TEXT NOT NULL DEFAULT '';"; alter.ExecuteNonQuery(); }
         catch (SqliteException) { /* column already exists */ }
+        return clock;
     }
 
     /// <inheritdoc />
