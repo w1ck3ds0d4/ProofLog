@@ -14,3 +14,4 @@ artifacts/
 *.db-journal
 *.db-wal
 *.db-shm
+evidence.json

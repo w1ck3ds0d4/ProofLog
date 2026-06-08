@@ -1,0 +1,55 @@
+# Publish ProofLog to NuGet on a version tag (e.g. `git tag v0.1.0 && git push --tags`).
+#
+# Requires one repo secret to actually publish:
+#   NUGET_API_KEY  an API key from https://www.nuget.org/account/apikeys (scope: Push)
+#
+# Without the secret it still builds/tests/packs the tag and uploads the .nupkg as an
+# artifact, but skips the push - so tagging never fails before you're set up.
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check configured
+        id: cfg
+        env:
+          KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$KEY" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::NUGET_API_KEY secret not set - building artifacts only, skipping publish."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - run: dotnet restore
+      - run: dotnet build -c Release --no-restore
+      - run: dotnet test -c Release --no-build
+      - run: dotnet pack src/ProofLog/ProofLog.csproj -c Release -o artifacts --no-build
+
+      - name: Push to NuGet
+        if: steps.cfg.outputs.configured == 'true'
+        run: dotnet nuget push "artifacts/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prooflog-nupkg
+          path: artifacts/*.nupkg
