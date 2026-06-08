@@ -16,7 +16,8 @@ public sealed class SqliteProofLog : ProofLogBase, IDisposable
     /// A bare path becomes <c>Data Source=path</c>; use <c>":memory:"</c> for an
     /// in-process database that lives as long as this object. Pass <paramref name="clock"/>
     /// for deterministic timestamps (tests).</summary>
-    public SqliteProofLog(string pathOrConnectionString, Func<DateTimeOffset>? clock = null)
+    public SqliteProofLog(string pathOrConnectionString, Func<DateTimeOffset>? clock = null, byte[]? signingKey = null)
+        : base(signingKey)
     {
         _clock = clock;
         var cs = pathOrConnectionString.Contains('=', StringComparison.Ordinal)
@@ -35,10 +36,15 @@ public sealed class SqliteProofLog : ProofLogBase, IDisposable
                 Resource TEXT,
                 Data     TEXT,
                 PrevHash TEXT NOT NULL,
-                Hash     TEXT NOT NULL
+                Hash     TEXT NOT NULL,
+                Mac      TEXT NOT NULL DEFAULT ''
             );
             """;
         cmd.ExecuteNonQuery();
+
+        // Add the Mac column to databases created before v0.2 (idempotent).
+        try { using var alter = _conn.CreateCommand(); alter.CommandText = "ALTER TABLE ProofRecords ADD COLUMN Mac TEXT NOT NULL DEFAULT '';"; alter.ExecuteNonQuery(); }
+        catch (SqliteException) { /* column already exists */ }
     }
 
     /// <inheritdoc />
@@ -48,7 +54,7 @@ public sealed class SqliteProofLog : ProofLogBase, IDisposable
     protected override ProofRecord? GetLast()
     {
         using var cmd = _conn.CreateCommand();
-        cmd.CommandText = "SELECT Seq, At, Actor, Action, Resource, Data, PrevHash, Hash FROM ProofRecords ORDER BY Seq DESC LIMIT 1;";
+        cmd.CommandText = "SELECT Seq, At, Actor, Action, Resource, Data, PrevHash, Hash, Mac FROM ProofRecords ORDER BY Seq DESC LIMIT 1;";
         using var r = cmd.ExecuteReader();
         return r.Read() ? Map(r) : null;
     }
@@ -58,8 +64,8 @@ public sealed class SqliteProofLog : ProofLogBase, IDisposable
     {
         using var cmd = _conn.CreateCommand();
         cmd.CommandText =
-            "INSERT INTO ProofRecords (Seq, At, Actor, Action, Resource, Data, PrevHash, Hash) " +
-            "VALUES ($seq, $at, $actor, $action, $resource, $data, $prev, $hash);";
+            "INSERT INTO ProofRecords (Seq, At, Actor, Action, Resource, Data, PrevHash, Hash, Mac) " +
+            "VALUES ($seq, $at, $actor, $action, $resource, $data, $prev, $hash, $mac);";
         cmd.Parameters.AddWithValue("$seq", record.Seq);
         cmd.Parameters.AddWithValue("$at", record.At.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture));
         cmd.Parameters.AddWithValue("$actor", record.Actor);
@@ -68,6 +74,7 @@ public sealed class SqliteProofLog : ProofLogBase, IDisposable
         cmd.Parameters.AddWithValue("$data", (object?)record.Data ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$prev", record.PrevHash);
         cmd.Parameters.AddWithValue("$hash", record.Hash);
+        cmd.Parameters.AddWithValue("$mac", record.Mac);
         cmd.ExecuteNonQuery();
     }
 
@@ -75,7 +82,7 @@ public sealed class SqliteProofLog : ProofLogBase, IDisposable
     protected override IEnumerable<ProofRecord> ReadAll()
     {
         using var cmd = _conn.CreateCommand();
-        cmd.CommandText = "SELECT Seq, At, Actor, Action, Resource, Data, PrevHash, Hash FROM ProofRecords ORDER BY Seq ASC;";
+        cmd.CommandText = "SELECT Seq, At, Actor, Action, Resource, Data, PrevHash, Hash, Mac FROM ProofRecords ORDER BY Seq ASC;";
         using var r = cmd.ExecuteReader();
         while (r.Read()) yield return Map(r);
     }
@@ -84,7 +91,7 @@ public sealed class SqliteProofLog : ProofLogBase, IDisposable
     protected override IReadOnlyList<ProofRecord> ReadRange(long fromSeq, int? limit)
     {
         using var cmd = _conn.CreateCommand();
-        cmd.CommandText = "SELECT Seq, At, Actor, Action, Resource, Data, PrevHash, Hash FROM ProofRecords WHERE Seq >= $from ORDER BY Seq ASC" + (limit is null ? ";" : " LIMIT $limit;");
+        cmd.CommandText = "SELECT Seq, At, Actor, Action, Resource, Data, PrevHash, Hash, Mac FROM ProofRecords WHERE Seq >= $from ORDER BY Seq ASC" + (limit is null ? ";" : " LIMIT $limit;");
         cmd.Parameters.AddWithValue("$from", fromSeq);
         if (limit is { } n) cmd.Parameters.AddWithValue("$limit", n);
         using var r = cmd.ExecuteReader();
@@ -111,6 +118,7 @@ public sealed class SqliteProofLog : ProofLogBase, IDisposable
         Data = r.IsDBNull(5) ? null : r.GetString(5),
         PrevHash = r.GetString(6),
         Hash = r.GetString(7),
+        Mac = r.IsDBNull(8) ? "" : r.GetString(8),
     };
 
     /// <summary>Close the underlying connection.</summary>

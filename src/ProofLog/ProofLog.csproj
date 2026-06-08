@@ -9,7 +9,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 
     <PackageId>ProofLog</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>w1ck3ds0d4</Authors>
     <Description>A tamper-evident, identity-bound, hash-chained audit-log SDK with a SQLite store and one-call evidence export. Evidence-grade logging for systems that must prove who did what, when (CRA / DORA / NIS2 / EU AI Act).</Description>
     <PackageTags>audit-log;tamper-evident;hash-chain;compliance;cra;dora;nis2;eu-ai-act;sqlite;security;evidence</PackageTags>

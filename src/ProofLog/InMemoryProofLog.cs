@@ -9,9 +9,10 @@ public sealed class InMemoryProofLog : ProofLogBase
     private readonly List<ProofRecord> _records = new();
     private readonly Func<DateTimeOffset>? _clock;
 
-    /// <summary>Create an optionally fixed-clock log (pass <paramref name="clock"/> for
-    /// deterministic timestamps).</summary>
-    public InMemoryProofLog(Func<DateTimeOffset>? clock = null) => _clock = clock;
+    /// <summary>Create an optionally fixed-clock, optionally signed log.</summary>
+    /// <param name="clock">Fixed clock for deterministic timestamps (tests).</param>
+    /// <param name="signingKey">Optional HMAC key; when set, records are signed and verified.</param>
+    public InMemoryProofLog(Func<DateTimeOffset>? clock = null, byte[]? signingKey = null) : base(signingKey) => _clock = clock;
 
     /// <inheritdoc />
     protected override DateTimeOffset UtcNow() => _clock?.Invoke() ?? base.UtcNow();

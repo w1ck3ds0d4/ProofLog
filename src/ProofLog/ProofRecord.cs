@@ -30,4 +30,10 @@ public sealed record ProofRecord
 
     /// <summary>This record's hash = SHA-256(PrevHash + canonical fields), lower-case hex.</summary>
     public string Hash { get; init; } = "";
+
+    /// <summary>Optional HMAC-SHA-256 over <see cref="Hash"/> with the log's signing key.
+    /// Empty when the log is unsigned. When a key is set, this stops an attacker who
+    /// can rewrite the whole chain (and so recompute hashes) from forging records,
+    /// because they cannot produce a valid MAC without the key.</summary>
+    public string Mac { get; init; } = "";
 }
