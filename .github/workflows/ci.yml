@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - run: dotnet restore
+      - run: dotnet build -c Release --no-restore
+      - run: dotnet test -c Release --no-build --verbosity normal
+
+      - name: Pack NuGet
+        run: dotnet pack src/ProofLog/ProofLog.csproj -c Release -o artifacts --no-build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: prooflog-nupkg
+          path: artifacts/*.nupkg
