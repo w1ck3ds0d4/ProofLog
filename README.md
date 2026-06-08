@@ -51,6 +51,20 @@ dotnet run --project samples/ProofLog.Demo
 
 It appends a chain, verifies it, then rewrites a record directly in the database and watches verification fail at exactly that record.
 
+## Use it in an app
+
+```csharp
+// DI (ASP.NET Core / worker) - one line:
+builder.Services.AddProofLog("audit.db");      // optional signingKey: key
+
+// inject IProofLog anywhere and append, no ceremony:
+log.Append("alice", "payout.approve", "payout/42", "{\"amt\":1500}");
+
+// or record AND emit through your existing ILogger in one call -
+// observability and tamper-evident evidence together:
+logger.Audit(log, "alice", "payout.approve", "payout/42");
+```
+
 ## How it works
 
 Each record's hash is:
