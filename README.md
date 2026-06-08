@@ -128,7 +128,24 @@ Same `Verify()`, same `Mac` column - the signature is just public-key now. `AddP
 
 ## Evidence export
 
-`Evidence.ToJson(log)` produces a portable bundle - every record plus the head hash and a fresh verification statement. An auditor needs nothing but that file and the public hashing rule above to **independently replay the chain** and confirm it. (Named regulator profiles - CRA / DORA / NIS2 / EU AI Act Article 12 - are on the roadmap.)
+`Evidence.ToJson(log)` produces a portable bundle - every record plus the head hash and a fresh verification statement. An auditor needs nothing but that file and the public hashing rule above to **independently replay the chain** and confirm it.
+
+### Regulator profiles
+
+Tag the export with a named profile so the bundle states which obligation it speaks to and maps that obligation onto ProofLog's properties:
+
+```csharp
+string json = Evidence.ToJson(log, RegulatorProfiles.Cra);   // or "dora", "nis2", "eu-ai-act"
+```
+
+| Key | Framework | Obligation it addresses |
+| --- | --- | --- |
+| `cra` | EU Cyber Resilience Act | Vulnerability handling + technical documentation (Annex I Part II, Art. 13/14) |
+| `dora` | EU DORA | ICT incident management + auditable records (Art. 17-19) |
+| `nis2` | EU NIS2 Directive | Risk-management measures incl. logging + incident reporting (Art. 21/23) |
+| `eu-ai-act` | EU AI Act | Automatic record-keeping / traceability for high-risk AI (Art. 12/19) |
+
+The profiled bundle adds the framework, the regulation reference, the requirement-to-property mapping, a `signed` flag, and a standing disclaimer (it documents log *integrity*, not compliance - not legal advice).
 
 ## API
 
@@ -139,7 +156,8 @@ Same `Verify()`, same `Mac` column - the signature is just public-key now. `AddP
 | `InMemoryProofLog` | non-durable store for tests / embedding |
 | `AuditEntry` | what you append (actor + action required) |
 | `ProofRecord` | a committed, chained record |
-| `Evidence` | one-call JSON evidence export |
+| `Evidence` | one-call JSON evidence export, plain or profiled |
+| `RegulatorProfiles` | named CRA / DORA / NIS2 / EU AI Act export profiles |
 | `Hashing` | the canonicalization + SHA-256 rule (so anyone can re-verify) |
 | `IProofSigner` | record signing - `HmacProofSigner` (symmetric) or `EcdsaProofSigner` (asymmetric, auditor-verifiable) |
 
@@ -156,7 +174,8 @@ Same `Verify()`, same `Mac` column - the signature is just public-key now. `AddP
 - **v0.1** *(done)* - core append + hash-chain + identity binding + verify, SQLite store, tamper-detection tests, evidence export, CI.
 - **v0.2** *(done)* - optional HMAC signing (defeats a full-chain rewrite), with backward-compatible unsigned logs.
 - **v0.3** *(done)* - asymmetric ECDSA P-256 signing: hand an auditor the public key so they verify the chain without being able to forge it (`EcdsaProofSigner`).
-- **Later** - OpenTelemetry bridge, additional stores, regulator-ready export profiles, Rust core.
+- **v0.4** *(done)* - named regulator export profiles (CRA / DORA / NIS2 / EU AI Act): tag an evidence bundle with the obligation it addresses and the requirement-to-property mapping.
+- **Later** - OpenTelemetry bridge, additional stores, Rust core.
 
 ## License
 
