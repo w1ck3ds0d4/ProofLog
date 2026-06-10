@@ -15,3 +15,4 @@ artifacts/
 *.db-wal
 *.db-shm
 evidence.json
+settlement-evidence.json
