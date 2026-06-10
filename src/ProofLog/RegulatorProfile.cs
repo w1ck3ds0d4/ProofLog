@@ -103,13 +103,32 @@ public static class RegulatorProfiles
                 "Tamper-evidence (and optional signing) demonstrates the retained logs are the ones the system produced."),
         });
 
-    private static readonly RegulatorProfile[] _all = { Cra, Dora, Nis2, EuAiAct };
+    /// <summary>Malta Gaming Authority - player-gaming record-keeping and dispute traceability.</summary>
+    public static readonly RegulatorProfile MgaGaming = new(
+        "mga-gaming",
+        "Malta Gaming Authority (B2C gaming)",
+        "MGA Gaming Authorisations and Compliance Directive + the Player Protection Directive - record-keeping of gaming transactions and the handling of player disputes / complaints",
+        "Licensees must keep complete, retrievable records of gaming transactions and game / market outcomes, and be able to evidence to the Authority and to players how a contested outcome was resolved.",
+        new[]
+        {
+            new ControlMapping(
+                "Keep complete, retrievable records of game / market outcomes and settlements",
+                "Every settlement decision is an append-only, time-stamped, attributable record, retrievable and exportable on demand."),
+            new ControlMapping(
+                "Evidence how a contested or voided outcome was resolved against its stated rules",
+                "The resolution record binds the market's stated source rule, the outcome, and the resolver identity into a signed entry an operator's own mutable logs cannot independently attest."),
+            new ControlMapping(
+                "Demonstrate the records were not altered after a dispute arose",
+                "The hash chain detects any edit, reorder, or deletion; an ECDSA signature lets the Authority or a player verify the record without being able to forge it."),
+        });
+
+    private static readonly RegulatorProfile[] _all = { Cra, Dora, Nis2, EuAiAct, MgaGaming };
 
     /// <summary>All built-in profiles.</summary>
     public static IReadOnlyList<RegulatorProfile> All => _all;
 
     /// <summary>Look up a profile by its key (case-insensitive), e.g. <c>"cra"</c>, <c>"dora"</c>,
-    /// <c>"nis2"</c>, <c>"eu-ai-act"</c>. Throws <see cref="ArgumentException"/> if unknown.</summary>
+    /// <c>"nis2"</c>, <c>"eu-ai-act"</c>, <c>"mga-gaming"</c>. Throws <see cref="ArgumentException"/> if unknown.</summary>
     public static RegulatorProfile ByKey(string key)
     {
         ArgumentNullException.ThrowIfNull(key);

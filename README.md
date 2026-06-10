@@ -51,6 +51,8 @@ dotnet run --project samples/ProofLog.Demo
 
 It appends a chain, verifies it, then rewrites a record directly in the database and watches verification fail at exactly that record.
 
+For a worked use case, `dotnet run --project samples/ProofSettle.Demo` records signed **settlement-evidence** for a few mock prediction markets, exports an MGA-profiled bundle a regulator or player verifies with only the public key, then flips one market in the raw database and watches independent verification catch it - the independent proof an operator's own (mutable) logs can't be.
+
 ## Use it in an app
 
 ```csharp
@@ -135,7 +137,7 @@ Same `Verify()`, same `Mac` column - the signature is just public-key now. `AddP
 Tag the export with a named profile so the bundle states which obligation it speaks to and maps that obligation onto ProofLog's properties:
 
 ```csharp
-string json = Evidence.ToJson(log, RegulatorProfiles.Cra);   // or "dora", "nis2", "eu-ai-act"
+string json = Evidence.ToJson(log, RegulatorProfiles.Cra);   // or "dora", "nis2", "eu-ai-act", "mga-gaming"
 ```
 
 | Key | Framework | Obligation it addresses |
@@ -144,6 +146,7 @@ string json = Evidence.ToJson(log, RegulatorProfiles.Cra);   // or "dora", "nis2
 | `dora` | EU DORA | ICT incident management + auditable records (Art. 17-19) |
 | `nis2` | EU NIS2 Directive | Risk-management measures incl. logging + incident reporting (Art. 21/23) |
 | `eu-ai-act` | EU AI Act | Automatic record-keeping / traceability for high-risk AI (Art. 12/19) |
+| `mga-gaming` | Malta Gaming Authority | Gaming-transaction record-keeping + evidencing how a contested / voided market resolved |
 
 The profiled bundle adds the framework, the regulation reference, the requirement-to-property mapping, a `signed` flag, and a standing disclaimer (it documents log *integrity*, not compliance - not legal advice).
 
