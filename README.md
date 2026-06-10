@@ -4,7 +4,7 @@
 
 ProofLog is hash-chained, queryable, evidence-grade logging for systems that must prove *who did what, when* to an auditor - the kind of record regulations like the CRA, DORA, NIS2, and the EU AI Act (Article 12) increasingly require. It's drop-in, SQLite-backed, and ships a one-call evidence export.
 
-It is the open-source core of the CRADesk line and the immutable evidence store inside [CRADesk](https://github.com/w1ck3ds0d4/CRADesk).
+It is the open-source core of the CRADesk compliance line and the tamper-evident evidence store inside the commercial CRADesk dossier engine.
 
 [![CI](https://github.com/w1ck3ds0d4/ProofLog/actions/workflows/ci.yml/badge.svg)](https://github.com/w1ck3ds0d4/ProofLog/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -165,9 +165,10 @@ The profiled bundle adds the framework, the regulation reference, the requiremen
 
 | Layer | Technology |
 | --- | --- |
-| v1 | .NET 8 (NuGet) |
-| v2 | Rust core |
-| Store | SQLite |
+| Library | .NET 8 (C#), zero runtime dependencies beyond Microsoft.Data.Sqlite |
+| Store | SQLite (durable) or in-memory |
+| Crypto | SHA-256 hash chain, HMAC-SHA256 / ECDSA P-256 signing (.NET BCL) |
+| Tests | xUnit, 46 tests incl. tamper/forgery scenarios |
 
 ## Roadmap
 

@@ -43,7 +43,7 @@ public static class RegulatorProfiles
                 "The hash chain detects any edit, reorder, insertion, or deletion; with signing, even a full rewrite by someone without the key is caught."),
             new ControlMapping(
                 "Evidence the timeline of incident handling and reporting (Article 14)",
-                "Every event carries a UTC timestamp bound into its hash, so the 24h / 72h / 14-day sequence is provable, not asserted."),
+                "Every event carries a UTC timestamp bound into its hash, so the recorded 24h / 72h / 14-day sequence is tamper-evident: the timeline cannot be quietly rewritten after the fact."),
         });
 
     /// <summary>EU Digital Operational Resilience Act - ICT incident management and audit trail.</summary>
