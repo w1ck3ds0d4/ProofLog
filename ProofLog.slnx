@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/samples/">
     <Project Path="samples/ProofLog.Demo/ProofLog.Demo.csproj" />
+    <Project Path="samples/ProofSettle.Demo/ProofSettle.Demo.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/ProofLog/ProofLog.csproj" />

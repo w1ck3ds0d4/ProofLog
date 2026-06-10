@@ -1,0 +1,66 @@
+{
+  "profile": {
+    "key": "mga-gaming",
+    "framework": "Malta Gaming Authority (B2C gaming)",
+    "reference": "MGA Gaming Authorisations and Compliance Directive \u002B the Player Protection Directive - record-keeping of gaming transactions and the handling of player disputes / complaints",
+    "obligation": "Licensees must keep complete, retrievable records of gaming transactions and game / market outcomes, and be able to evidence to the Authority and to players how a contested outcome was resolved.",
+    "mappings": [
+      {
+        "requirement": "Keep complete, retrievable records of game / market outcomes and settlements",
+        "howProofLogHelps": "Every settlement decision is an append-only, time-stamped, attributable record, retrievable and exportable on demand."
+      },
+      {
+        "requirement": "Evidence how a contested or voided outcome was resolved against its stated rules",
+        "howProofLogHelps": "The resolution record binds the market\u0027s stated source rule, the outcome, and the resolver identity into a signed entry an operator\u0027s own mutable logs cannot independently attest."
+      },
+      {
+        "requirement": "Demonstrate the records were not altered after a dispute arose",
+        "howProofLogHelps": "The hash chain detects any edit, reorder, or deletion; an ECDSA signature lets the Authority or a player verify the record without being able to forge it."
+      }
+    ]
+  },
+  "signed": true,
+  "disclaimer": "ProofLog provides a tamper-evident, identity-bound record-keeping mechanism. This export documents the integrity of the recorded events; it does not by itself constitute or guarantee regulatory compliance, and it is not legal advice.",
+  "generatedAt": "2026-06-10T19:03:09.4360294+00:00",
+  "count": 3,
+  "head": "edc6b96cb51e66e29d25455b702d6677eaf48155115c8fe72789e53c22281649",
+  "verification": {
+    "ok": true,
+    "verified": 3
+  },
+  "records": [
+    {
+      "seq": 1,
+      "at": "2026-06-10T19:03:09.3853878+00:00",
+      "actor": "ops.alice",
+      "action": "market.resolve",
+      "resource": "MKT-1041",
+      "data": "{\u0022market\u0022:\u0022MKT-1041\u0022,\u0022outcome\u0022:\u0022YES\u0022,\u0022sourceRule\u0022:\u0022Official MGA / SiGMA announcement\u0022}",
+      "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "0573027023b10be9a0d01abcf2b194cec19a5948c26c8494f81a15688753e522",
+      "mac": "031cfec867781fcc91bec29bbba0866ce0420cef6c9595ae87a01c85cd1703c57a137292a5b669f337d2d76077d5f1828c325d8be1ed7cc6d76cb8e4b1f49ec0"
+    },
+    {
+      "seq": 2,
+      "at": "2026-06-10T19:03:09.4213119+00:00",
+      "actor": "ops.bob",
+      "action": "market.resolve",
+      "resource": "MKT-1042",
+      "data": "{\u0022market\u0022:\u0022MKT-1042\u0022,\u0022outcome\u0022:\u0022NO\u0022,\u0022sourceRule\u0022:\u0022ECB reference rate, 2026-06-30\u0022}",
+      "prevHash": "0573027023b10be9a0d01abcf2b194cec19a5948c26c8494f81a15688753e522",
+      "hash": "e361a2dad8ff7ce552573887db43b347e10baf0d04fbf355de1fb9cfc76fe485",
+      "mac": "0c62f12131423b9647339671d495caf1aa214b637e1b661e81d2e31f974dd44902924ccbfce6e9778294bacaf691c1b03aed9ea9ba7ceacc7eb8b0735c90151d"
+    },
+    {
+      "seq": 3,
+      "at": "2026-06-10T19:03:09.4273632+00:00",
+      "actor": "ops.alice",
+      "action": "market.resolve",
+      "resource": "MKT-1043",
+      "data": "{\u0022market\u0022:\u0022MKT-1043\u0022,\u0022outcome\u0022:\u0022YES\u0022,\u0022sourceRule\u0022:\u0022Internal analytics snapshot, signed by the data lead\u0022}",
+      "prevHash": "e361a2dad8ff7ce552573887db43b347e10baf0d04fbf355de1fb9cfc76fe485",
+      "hash": "edc6b96cb51e66e29d25455b702d6677eaf48155115c8fe72789e53c22281649",
+      "mac": "bbb247356bd142d7e2e55054256aa5467f5d19dcf9c06572da568e14025ccc6c5994a3b799cbb2f9f1f60abbbae8e34aff65459dd11a0dbdbd626858981fd399"
+    }
+  ]
+}
