@@ -14,7 +14,7 @@ public class EvidenceProfileTests
     [Fact]
     public void All_profiles_are_well_formed()
     {
-        Assert.Equal(5, RegulatorProfiles.All.Count);
+        Assert.Equal(6, RegulatorProfiles.All.Count);
         foreach (var p in RegulatorProfiles.All)
         {
             Assert.False(string.IsNullOrWhiteSpace(p.Key));
@@ -38,6 +38,8 @@ public class EvidenceProfileTests
     [InlineData("eu-ai-act", "EU Artificial Intelligence Act")]
     [InlineData("EU-AI-ACT", "EU Artificial Intelligence Act")]
     [InlineData("mga-gaming", "Malta Gaming Authority (B2C gaming)")]
+    [InlineData("digital-evidence", "ISO/IEC 27037 + 27043 (digital evidence and investigation)")]
+    [InlineData("DIGITAL-EVIDENCE", "ISO/IEC 27037 + 27043 (digital evidence and investigation)")]
     public void ByKey_is_case_insensitive(string key, string framework)
     {
         Assert.Equal(framework, RegulatorProfiles.ByKey(key).Framework);

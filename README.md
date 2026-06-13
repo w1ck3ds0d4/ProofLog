@@ -1,8 +1,8 @@
 # ProofLog
 
-**A tamper-evident, identity-bound audit-log SDK.**
+**A tamper-evident, identity-bound audit log - and a court-admissible digital chain-of-custody.**
 
-ProofLog is hash-chained, queryable, evidence-grade logging for systems that must prove *who did what, when* to an auditor - the kind of record regulations like the CRA, DORA, NIS2, and the EU AI Act (Article 12) increasingly require. It's drop-in, SQLite-backed, and ships a one-call evidence export.
+ProofLog is hash-chained, queryable, evidence-grade logging for systems that must prove *who did what, when* to an auditor, a regulator, or a court. The same properties that satisfy record-keeping regulations (CRA, DORA, NIS2, EU AI Act) also make it a **chain-of-custody** layer for digital evidence: every record is append-only, identity-bound, time-stamped, hash-chained, and optionally ECDSA-signed so an independent party can verify it with only the public key, without being able to forge it. Drop-in, SQLite-backed, with a one-call, self-verifying evidence export.
 
 It is the open-source core of the CRADesk compliance line and the tamper-evident evidence store inside the commercial CRADesk dossier engine.
 
@@ -137,7 +137,7 @@ Same `Verify()`, same `Mac` column - the signature is just public-key now. `AddP
 Tag the export with a named profile so the bundle states which obligation it speaks to and maps that obligation onto ProofLog's properties:
 
 ```csharp
-string json = Evidence.ToJson(log, RegulatorProfiles.Cra);   // or "dora", "nis2", "eu-ai-act", "mga-gaming"
+string json = Evidence.ToJson(log, RegulatorProfiles.Cra);   // or "dora", "nis2", "eu-ai-act", "mga-gaming", "digital-evidence"
 ```
 
 | Key | Framework | Obligation it addresses |
@@ -147,8 +147,13 @@ string json = Evidence.ToJson(log, RegulatorProfiles.Cra);   // or "dora", "nis2
 | `nis2` | EU NIS2 Directive | Risk-management measures incl. logging + incident reporting (Art. 21/23) |
 | `eu-ai-act` | EU AI Act | Automatic record-keeping / traceability for high-risk AI (Art. 12/19) |
 | `mga-gaming` | Malta Gaming Authority | Gaming-transaction record-keeping + evidencing how a contested / voided market resolved |
+| `digital-evidence` | ISO/IEC 27037 + 27043 | Digital-evidence chain of custody: documented custody, provable integrity, authenticated origin, independent verifiability |
 
 The profiled bundle adds the framework, the regulation reference, the requirement-to-property mapping, a `signed` flag, and a standing disclaimer (it documents log *integrity*, not compliance - not legal advice).
+
+### Digital evidence and chain of custody
+
+The `digital-evidence` profile is the forensic framing of the same engine. Courts and investigators judge digital evidence on four things, and each maps directly onto a ProofLog property: **documented custody** (append-only, identity-bound records), **provable integrity** (the hash chain catches any post-collection alteration), **authenticated origin** (an ECDSA signature ties the trail to a key the collector controls), and **independent verifiability** (the public canonicalization rule + public key let a court or opposing expert replay and verify without trusting the holder). Bind an artifact's hash into a record at the moment of collection and the trail becomes the artifact's chain of custody, mapped to ISO/IEC 27037 (collection / acquisition / preservation) and 27043 (the investigation process).
 
 ## API
 
@@ -171,15 +176,15 @@ The profiled bundle adds the framework, the regulation reference, the requiremen
 | Library | .NET 8 (C#), zero runtime dependencies beyond Microsoft.Data.Sqlite |
 | Store | SQLite (durable) or in-memory |
 | Crypto | SHA-256 hash chain, HMAC-SHA256 / ECDSA P-256 signing (.NET BCL) |
-| Tests | xUnit, 46 tests incl. tamper/forgery scenarios |
+| Tests | xUnit, 49 tests incl. tamper/forgery scenarios |
 
 ## Roadmap
 
 - **v0.1** *(done)* - core append + hash-chain + identity binding + verify, SQLite store, tamper-detection tests, evidence export, CI.
 - **v0.2** *(done)* - optional HMAC signing (defeats a full-chain rewrite), with backward-compatible unsigned logs.
 - **v0.3** *(done)* - asymmetric ECDSA P-256 signing: hand an auditor the public key so they verify the chain without being able to forge it (`EcdsaProofSigner`).
-- **v0.4** *(done)* - named regulator export profiles (CRA / DORA / NIS2 / EU AI Act): tag an evidence bundle with the obligation it addresses and the requirement-to-property mapping.
-- **Later** - OpenTelemetry bridge, additional stores, Rust core.
+- **v0.4** *(done)* - named export profiles (CRA / DORA / NIS2 / EU AI Act / MGA-gaming / **digital-evidence** ISO/IEC 27037+27043): tag an evidence bundle with the obligation or forensic standard it addresses and the requirement-to-property mapping.
+- **Later** - OpenTelemetry bridge, additional stores, Rust core; an `EvidenceVault` layer that binds artifact hashes + trusted timestamps into a per-case custody chain (the chain-of-custody product on top of this core).
 
 ## License
 

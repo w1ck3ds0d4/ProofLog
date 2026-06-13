@@ -122,13 +122,35 @@ public static class RegulatorProfiles
                 "The hash chain detects any edit, reorder, or deletion; an ECDSA signature lets the Authority or a player verify the record without being able to forge it."),
         });
 
-    private static readonly RegulatorProfile[] _all = { Cra, Dora, Nis2, EuAiAct, MgaGaming };
+    /// <summary>ISO/IEC 27037 + 27043 - digital evidence handling and chain of custody.</summary>
+    public static readonly RegulatorProfile DigitalEvidence = new(
+        "digital-evidence",
+        "ISO/IEC 27037 + 27043 (digital evidence and investigation)",
+        "ISO/IEC 27037:2012 (identification, collection, acquisition and preservation of digital evidence) and ISO/IEC 27043:2015 (incident investigation principles and processes)",
+        "Digital evidence must be handled so it can be relied upon: its origin authenticated, its integrity provable, its chain of custody documented and unbroken, and its handling auditable, repeatable, and reproducible by an independent party.",
+        new[]
+        {
+            new ControlMapping(
+                "Maintain an unbroken, documented chain of custody - who handled the evidence, when, and what was done",
+                "Each handling action (collection, acquisition, transfer, analysis) is an append-only, identity-bound, time-stamped record; the hash chain proves no step was inserted, removed, or reordered, so custody is continuous and attributable."),
+            new ControlMapping(
+                "Prove evidence integrity - that an artifact was not altered after collection",
+                "The artifact's hash is bound into the SHA-256 chain at the moment of collection; any later edit fails verification at exactly that record. With ECDSA signing, even a full rewrite by someone without the private key is caught."),
+            new ControlMapping(
+                "Authenticate the origin of the evidence so it can be attributed",
+                "ProofLog refuses a record without an actor, and an ECDSA signature ties the trail to a private key the collector controls - origin is authenticated, not merely asserted."),
+            new ControlMapping(
+                "Let an independent party verify without trusting the holder (auditability, repeatability, reproducibility)",
+                "The canonicalization rule is public and the export is self-contained, so a court, opposing expert, or auditor can replay the chain and, with only the public key, verify every signature without being able to forge or extend the trail."),
+        });
+
+    private static readonly RegulatorProfile[] _all = { Cra, Dora, Nis2, EuAiAct, MgaGaming, DigitalEvidence };
 
     /// <summary>All built-in profiles.</summary>
     public static IReadOnlyList<RegulatorProfile> All => _all;
 
     /// <summary>Look up a profile by its key (case-insensitive), e.g. <c>"cra"</c>, <c>"dora"</c>,
-    /// <c>"nis2"</c>, <c>"eu-ai-act"</c>, <c>"mga-gaming"</c>. Throws <see cref="ArgumentException"/> if unknown.</summary>
+    /// <c>"nis2"</c>, <c>"eu-ai-act"</c>, <c>"mga-gaming"</c>, <c>"digital-evidence"</c>. Throws <see cref="ArgumentException"/> if unknown.</summary>
     public static RegulatorProfile ByKey(string key)
     {
         ArgumentNullException.ThrowIfNull(key);
