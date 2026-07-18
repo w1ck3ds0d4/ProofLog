@@ -16,3 +16,15 @@ artifacts/
 *.db-shm
 evidence.json
 settlement-evidence.json
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
