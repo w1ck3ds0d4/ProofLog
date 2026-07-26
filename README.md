@@ -192,4 +192,4 @@ The `digital-evidence` profile is the forensic framing of the same engine. Court
 
 ## License
 
-Apache-2.0. Permissive on purpose: ProofLog is meant to be adopted.
+[Apache 2.0](LICENSE). Permissive on purpose: ProofLog is meant to be adopted.
