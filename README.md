@@ -1,10 +1,14 @@
 # ProofLog
 
-**A tamper-evident, identity-bound audit log - and a court-admissible digital chain-of-custody.**
+**A tamper-evident, identity-bound audit log and a verifiable digital chain-of-custody.**
 
 ProofLog is hash-chained, queryable, evidence-grade logging for systems that must prove *who did what, when* to an auditor, a regulator, or a court. The same properties that satisfy record-keeping regulations (CRA, DORA, NIS2, EU AI Act) also make it a **chain-of-custody** layer for digital evidence: every record is append-only, identity-bound, time-stamped, hash-chained, and optionally ECDSA-signed so an independent party can verify it with only the public key, without being able to forge it. Drop-in, SQLite-backed, with a one-call, self-verifying evidence export.
 
 It is the open-source core of the CRADesk compliance line and the tamper-evident evidence store inside the commercial CRADesk dossier engine.
+
+> **Scope of the guarantee.** ProofLog proves *integrity and order*: that records were not altered, reordered, or forged after the fact, verifiable by a third party with only the public key. It does **not** by itself prove *when* an event happened: timestamps come from the host clock, so an operator with write access could set the clock and build a self-consistent chain at any time. For an independent time guarantee, anchor the chain to a trusted timestamp authority (RFC 3161) or a public ledger. "Chain-of-custody evidence" here means integrity-grade, not a standalone claim of court admissibility, which depends on jurisdiction, process, and trusted time.
+>
+> **Known advisory (transitive).** Via `Microsoft.Data.Sqlite` this package pulls `SQLitePCLRaw.*.e_sqlite3`, covered by **CVE-2025-6965** (a SQLite memory-corruption bug fixed in SQLite 3.50.2). As of 2026-07 no patched SQLitePCLRaw release exists on the referenced line. ProofLog is **not affected in normal use**: it executes only its own fixed-schema, parameterized queries and never runs caller- or attacker-supplied SQL, so the vulnerable aggregate-query path is not reachable. The dependency is pinned to the newest maintained build (10.0.10) and will be bumped when SQLitePCLRaw ships the SQLite 3.50.2 fix.
 
 [![CI](https://github.com/w1ck3ds0d4/ProofLog/actions/workflows/ci.yml/badge.svg)](https://github.com/w1ck3ds0d4/ProofLog/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
