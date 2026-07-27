@@ -1,10 +1,17 @@
-# Publish ProofLog to NuGet on a version tag (e.g. `git tag v0.1.0 && git push --tags`).
+# Publish ProofLog to NuGet on a version tag (e.g. `git tag v0.4.0 && git push --tags`).
 #
-# Requires one repo secret to actually publish:
-#   NUGET_API_KEY  an API key from https://www.nuget.org/account/apikeys (scope: Push)
+# Publishing uses NuGet Trusted Publishing (OIDC), not a long-lived API key: the job
+# exchanges a short-lived GitHub OIDC token for a temporary NuGet key at run time, so
+# no secret is ever stored in this repository.
 #
-# Without the secret it still builds/tests/packs the tag and uploads the .nupkg as an
-# artifact, but skips the push - so tagging never fails before you're set up.
+# One-time setup on nuget.org (Account -> Trusted Publishing -> Add):
+#   Package owner:   w1ck3ds0d4
+#   Repository:      w1ck3ds0d4/ProofLog
+#   Workflow file:   release.yml
+#   Environment:     (leave empty)
+#
+# Until that policy exists the login step fails, so the job still builds, tests and packs
+# the tag and uploads the .nupkg as an artifact, and only the publish step is skipped.
 
 name: Release
 
@@ -15,23 +22,12 @@ on:
 
 permissions:
   contents: read
+  id-token: write   # required to request the OIDC token for Trusted Publishing
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Check configured
-        id: cfg
-        env:
-          KEY: ${{ secrets.NUGET_API_KEY }}
-        run: |
-          if [ -z "$KEY" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::NUGET_API_KEY secret not set - building artifacts only, skipping publish."
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
@@ -45,11 +41,28 @@ jobs:
       - run: dotnet test -c Release --no-build
       - run: dotnet pack src/ProofLog/ProofLog.csproj -c Release -o artifacts --no-build
 
-      - name: Push to NuGet
-        if: steps.cfg.outputs.configured == 'true'
-        run: dotnet nuget push "artifacts/*.nupkg" --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
-
-      - uses: actions/upload-artifact@v4
+      # Always keep the package as an artifact, even if publishing is not set up yet.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: prooflog-nupkg
           path: artifacts/*.nupkg
+
+      - name: Exchange OIDC token for a short-lived NuGet key
+        id: login
+        continue-on-error: true
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1
+        with:
+          user: w1ck3ds0d4
+
+      - name: Push to NuGet
+        if: steps.login.outcome == 'success'
+        run: >
+          dotnet nuget push "artifacts/*.nupkg"
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+
+      - name: Report when publishing was skipped
+        if: steps.login.outcome != 'success'
+        run: |
+          echo "::notice::Trusted Publishing is not configured yet, so the package was built and uploaded as an artifact but not published. Add the trusted publisher policy on nuget.org, then re-run this workflow."

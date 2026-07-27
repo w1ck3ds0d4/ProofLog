@@ -11,8 +11,23 @@ It is the open-source core of the CRADesk compliance line and the tamper-evident
 > **Known advisory (transitive).** Via `Microsoft.Data.Sqlite` this package pulls `SQLitePCLRaw.*.e_sqlite3`, covered by **CVE-2025-6965** (a SQLite memory-corruption bug fixed in SQLite 3.50.2). As of 2026-07 no patched SQLitePCLRaw release exists on the referenced line. ProofLog is **not affected in normal use**: it executes only its own fixed-schema, parameterized queries and never runs caller- or attacker-supplied SQL, so the vulnerable aggregate-query path is not reachable. The dependency is pinned to the newest maintained build (10.0.10) and will be bumped when SQLitePCLRaw ships the SQLite 3.50.2 fix.
 
 [![CI](https://github.com/w1ck3ds0d4/ProofLog/actions/workflows/ci.yml/badge.svg)](https://github.com/w1ck3ds0d4/ProofLog/actions/workflows/ci.yml)
+[![NuGet](https://img.shields.io/nuget/v/ProofLog.svg)](https://www.nuget.org/packages/ProofLog/)
+[![Downloads](https://img.shields.io/nuget/dt/ProofLog.svg)](https://www.nuget.org/packages/ProofLog/)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4.svg)](https://dotnet.microsoft.com/)
+
+---
+
+## Contents
+
+- [Why](#why) - what breaks without it
+- [How it works](#how-it-works) - the chain, and what each tampering attempt trips
+- [Install](#install) and [Quickstart](#quickstart)
+- [Use it in an app](#use-it-in-an-app) - DI, one line
+- [Signing](#signing-optional-recommended-for-high-assurance) - HMAC and auditor-verifiable ECDSA
+- [Evidence export](#evidence-export) - regulator profiles, chain of custody
+- [API](#api) - the whole surface
+- [Assurance ladder](#assurance-ladder) - how far each configuration gets you
 
 ---
 
@@ -26,7 +41,7 @@ Ordinary logs are editable. If an attacker (or an insider) can change history, y
 dotnet add package ProofLog
 ```
 
-> Published to NuGet on each version tag (`v*`). Until the first release lands, clone this repo and `dotnet add reference` to `src/ProofLog/ProofLog.csproj`, or run the demo below.
+Targets .NET 8.0. Published to NuGet on each version tag (`v*`) via Trusted Publishing, so no long-lived API key exists for this repository.
 
 ## Quickstart
 
@@ -73,6 +88,22 @@ logger.Audit(log, "alice", "payout.approve", "payout/42");
 
 ## How it works
 
+Every record carries the hash of the record before it, so the log is a chain rather than a list. Each link commits to everything behind it.
+
+```mermaid
+flowchart LR
+    G["GENESIS<br/>fixed seed hash"]
+    R1["seq 1 &bull; alice<br/>user.login<br/><b>hash</b> a3f1..."]
+    R2["seq 2 &bull; alice<br/>payout.approve<br/><b>hash</b> 9c2e..."]
+    R3["seq 3 &bull; bob<br/>payout.settle<br/><b>hash</b> 41d8..."]
+    H(["Head()<br/>anchor this externally"])
+
+    G -- prevHash --> R1 -- prevHash --> R2 -- prevHash --> R3 --> H
+
+    style G fill:#e8e8e8,stroke:#999,color:#333
+    style H fill:#fff3cd,stroke:#d39e00,color:#333
+```
+
 Each record's hash is:
 
 ```
@@ -80,6 +111,23 @@ hash_i = SHA-256( hash_{i-1}  ||  seq  ||  timestamp  ||  actor  ||  action  || 
 ```
 
 Fields are **length-prefixed** before hashing, so no value can be crafted to forge an equivalent encoding. The first record chains from a fixed genesis hash. `Verify()` walks the log, recomputes every hash from the stored fields, and checks each record's `PrevHash` against the actual previous hash and that sequence numbers are contiguous.
+
+Because record 3 commits to record 2, which commits to record 1, altering anything in the middle invalidates every link after it. Verification reports the exact sequence number where the break occurs:
+
+```mermaid
+flowchart LR
+    R1["seq 1<br/>intact"]
+    R2["seq 2 EDITED<br/>amount 1500 to 15000"]
+    R3["seq 3<br/>now orphaned"]
+
+    R1 --> R2 --> R3
+    R2 -.->|"recomputed hash<br/>no longer matches"| X{{"Verify() fails<br/>BrokenAtSeq = 2"}}
+
+    style R1 fill:#d4edda,stroke:#28a745,color:#155724
+    style R2 fill:#f8d7da,stroke:#dc3545,color:#721c24
+    style R3 fill:#fff3cd,stroke:#ffc107,color:#856404
+    style X fill:#f8d7da,stroke:#dc3545,color:#721c24
+```
 
 | Tampering | Detected by |
 | --- | --- |
@@ -172,6 +220,35 @@ The `digital-evidence` profile is the forensic framing of the same engine. Court
 | `RegulatorProfiles` | named CRA / DORA / NIS2 / EU AI Act export profiles |
 | `Hashing` | the canonicalization + SHA-256 rule (so anyone can re-verify) |
 | `IProofSigner` | record signing - `HmacProofSigner` (symmetric) or `EcdsaProofSigner` (asymmetric, auditor-verifiable) |
+
+## Assurance ladder
+
+Each rung defends against a strictly stronger attacker. Pick the lowest one that covers your threat model; every rung is fully supported.
+
+```mermaid
+flowchart TB
+    L1["<b>1. Hash chain</b><br/>default<br/><br/>Stops: editing, deleting,<br/>reordering, inserting"]
+    L2["<b>2. + HMAC signing</b><br/>signingKey<br/><br/>Also stops: an attacker who can<br/>rewrite the entire store"]
+    L3["<b>3. + ECDSA signing</b><br/>EcdsaProofSigner<br/><br/>Also gives: third-party verification<br/>with only the public key"]
+    L4["<b>4. + External anchoring</b><br/>Head() published elsewhere<br/><br/>Also stops: truncating the tail"]
+    L5["<b>5. + Trusted timestamp</b><br/>RFC 3161, not yet built in<br/><br/>Also proves: <i>when</i> it happened"]
+
+    L1 --> L2 --> L3 --> L4 --> L5
+
+    style L1 fill:#d4edda,stroke:#28a745,color:#155724
+    style L2 fill:#d4edda,stroke:#28a745,color:#155724
+    style L3 fill:#d4edda,stroke:#28a745,color:#155724
+    style L4 fill:#d4edda,stroke:#28a745,color:#155724
+    style L5 fill:#e8e8e8,stroke:#999,color:#333
+```
+
+| Rung | Defends against | Cost |
+| --- | --- | --- |
+| 1. Hash chain (default) | anyone editing, deleting, reordering or inserting records | none |
+| 2. HMAC signing | an attacker with full write access rewriting the whole chain | manage one secret key |
+| 3. ECDSA signing | the same, and lets an auditor verify without any secret | manage a private key, publish the public one |
+| 4. Anchor `Head()` externally | truncation of the tail (a hash chain cannot self-detect this) | somewhere to publish the head |
+| 5. Trusted timestamp (RFC 3161) | backdating by an operator who controls the host clock | not built in yet, see the scope note above |
 
 ## Tech stack
 
