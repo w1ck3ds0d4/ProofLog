@@ -2,10 +2,16 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-test:
@@ -18,6 +24,8 @@ jobs:
           dotnet-version: |
             8.0.x
             10.0.x
+          cache: true
+          cache-dependency-path: '**/*.csproj'
 
       - run: dotnet restore
       - run: dotnet build -c Release --no-restore
@@ -30,3 +38,25 @@ jobs:
         with:
           name: prooflog-nupkg
           path: artifacts/*.nupkg
+
+  automerge:
+    name: Auto-merge Dependabot patch updates
+    needs: [build-test]
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - id: meta
+        uses: dependabot/fetch-metadata@v2
+      - name: Merge when every update in the PR is a patch
+        if: steps.meta.outputs.update-type == 'version-update:semver-patch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          t="${PR_TITLE#chore: }"
+          gh pr merge "$PR_URL" --squash --subject "(chore) ${t,,} (#$PR_NUMBER)" --body ""
