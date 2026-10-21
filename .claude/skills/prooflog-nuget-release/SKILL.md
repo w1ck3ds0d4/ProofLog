@@ -1,6 +1,6 @@
 ---
 name: prooflog-nuget-release
-description: Cut a NuGet release of ProofLog by tagging a version. Use when Daniel says "release ProofLog", "cut a NuGet version", or "publish ProofLog to NuGet" - verifies the build first, then tags so the version tag itself triggers publish, and flags the pinned SQLitePCLRaw advisory before any dependency bump in the same change.
+description: Cut a NuGet release of ProofLog by tagging a version. Use when the maintainer says "release ProofLog", "cut a NuGet version", or "publish ProofLog to NuGet" - verifies the build first, then tags so the version tag itself triggers publish, and flags the pinned SQLitePCLRaw advisory before any dependency bump in the same change.
 ---
 
 # ProofLog NuGet release
@@ -63,7 +63,7 @@ whether publishing succeeds. The `Exchange OIDC token for a short-lived NuGet ke
 uses `continue-on-error: true`, so a Trusted Publishing misconfiguration does not fail the
 whole run, it just skips the push step and prints a `::notice::`.
 
-## What Daniel does himself (one-time, on nuget.org)
+## What the maintainer does himself (one-time, on nuget.org)
 
 Trusted Publishing needs a policy registered on nuget.org before the first automated
 publish will work: Account -> Trusted Publishing -> Add, with:
@@ -73,7 +73,7 @@ publish will work: Account -> Trusted Publishing -> Add, with:
 - Environment: (leave empty)
 
 This is a nuget.org account action; Claude cannot do it. If the run's `Report when
-publishing was skipped` step fires, tell Daniel the policy is missing or stale and point
+publishing was skipped` step fires, tell the maintainer the policy is missing or stale and point
 him at this setup.
 
 ## What proves it worked
