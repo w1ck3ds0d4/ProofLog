@@ -16,8 +16,6 @@ It is the open-source core of the CRADesk compliance line and the tamper-evident
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4.svg)](https://dotnet.microsoft.com/)
 
----
-
 ## Contents
 
 - [Why](#why) - what breaks without it
@@ -28,8 +26,6 @@ It is the open-source core of the CRADesk compliance line and the tamper-evident
 - [Evidence export](#evidence-export) - regulator profiles, chain of custody
 - [API](#api) - the whole surface
 - [Assurance ladder](#assurance-ladder) - how far each configuration gets you
-
----
 
 ## Why
 
