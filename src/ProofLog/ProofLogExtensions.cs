@@ -6,8 +6,11 @@ namespace ProofLog;
 public static class ProofLogExtensions
 {
     /// <summary>Append an entry without constructing an <see cref="AuditEntry"/>.</summary>
-    public static ProofRecord Append(this IProofLog log, string actor, string action, string? resource = null, string? data = null) =>
-        log.Append(new AuditEntry { Actor = actor, Action = action, Resource = resource, Data = data });
+    public static ProofRecord Append(this IProofLog log, string actor, string action, string? resource = null, string? data = null)
+    {
+        ArgumentNullException.ThrowIfNull(log);
+        return log.Append(new AuditEntry { Actor = actor, Action = action, Resource = resource, Data = data });
+    }
 
     /// <summary>Verify the chain AND that its head matches a previously anchored value.
     /// This closes the truncation gap: if records were deleted from the end (or appended)
@@ -16,6 +19,8 @@ public static class ProofLogExtensions
     /// system) and call this with it.</summary>
     public static VerificationResult Verify(this IProofLog log, string expectedHead)
     {
+        ArgumentNullException.ThrowIfNull(log);
+        ArgumentNullException.ThrowIfNull(expectedHead);
         var v = log.Verify();
         if (!v.Ok) return v;
         if (!string.Equals(log.Head(), expectedHead, StringComparison.OrdinalIgnoreCase))
@@ -27,6 +32,8 @@ public static class ProofLogExtensions
     /// <see cref="ILogger"/> pipeline in one call - observability and evidence together.</summary>
     public static ProofRecord Audit(this ILogger logger, IProofLog log, string actor, string action, string? resource = null, string? data = null)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(log);
         var record = log.Append(actor, action, resource, data);
         logger.LogInformation("audit #{Seq} {Actor} {Action} {Resource}", record.Seq, actor, action, resource ?? "-");
         return record;
